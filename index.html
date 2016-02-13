@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset=utf-8>
+  <title>Architecture Demo</title>
+  <style>
+  body {
+    margin: 0px;
+    overflow: hidden;
+  }
+
+  canvas {
+    width: 100%;
+    height: 100%
+  }
+  </style>
+</head>
+
+<body>
+  <script src="js/jquery-2.1.4.min.js"></script>
+  <script src="js/three.js"></script>
+  <script src="js/ObjectLoader.js"></script>
+  <script src="js/OBJLoader.js"></script>
+  <script src="js/OrbitControls.js"></script>
+  <script src="js/JSONLoader.js"></script>
+  <script src="js/MTLLoader.js"></script>
+  <script src="js/OBJMTLLoader.js"></script>
+  <script src="js/GeometryUtils.js"></script>
+  <script src="js/MapControls.js"></script>
+  <script src="js/Stats.js"></script>
+  <script src="js/TransformControls.js"></script>
+  <script src="js/Mirror.js"></script>
+  <script>
+
+  var isLoading = false;
+  var plane = null;
+  var selection = null;
+  var collidableMeshList = [];
+  var raycaster = new THREE.Raycaster();
+  var objects = [];
+  var offset = new THREE.Vector3(1,0,0);
+  var renderer = new THREE.WebGLRenderer({
+    antialias: true
+  });
+  renderer.setClearColor( 0xdddddd);
+
+  var fov = 45;
+  var camera, controls;
+  var scene = new THREE.Scene();
+  var loaderMesh = new THREE.Mesh(); // the mesh that appears on loading
+  var objects = [];
+  var clock = new THREE.Clock();
+
+  var mouse = new THREE.Vector2();
+  var raycaster = new THREE.Raycaster();
+
+  var parketTexture = new THREE.TextureLoader().load( "models/parketFloor2.png" );
+  parketTexture.wrapS = THREE.RepeatWrapping;
+  parketTexture.wrapT = THREE.RepeatWrapping;
+  parketTexture.repeat.set( 4, 4 );
+  var hemiLight, spotLight, spotLight2, sphere, sphere2;
+  var controlObject;
+
+  var currentScene;
+
+  var inverseCamera = new THREE.PerspectiveCamera(145, window.innerWidth / window.innerHeight, 0.01, 1000);
+  inverseCamera.position.set(0, -6, 0);
+  inverseCamera.lookAt(new THREE.Vector3(0,0,0));
+
+  var groundMirror = new THREE.Mirror( renderer, inverseCamera, { clipBias: 0.5, textureWidth: 4096, textureHeight: 4096, color: 0x777777 } );;
+
+  var collision = false;
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  document.body.appendChild(renderer.domElement);
+
+
+  function init()
+  {
+
+    $("#textScreen").fadeOut( "slow", function() {
+
+      camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.0001, 1000);
+      camera.focalLength = 10;
+      camera.zoom = 1;
+      camera.fov = 50;
+      camera.aspect = 1.5928338762214984;
+      camera.near = 0.1;
+      camera.far = 10000;
+
+      camera.position.set(0, 0, 0);
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.target = new THREE.Vector3(0, 0, 0);
+      controls.rotateSpeed = 1.0;
+      controls.zoomSpeed = 1.2;
+      controls.panSpeed = 0.8;
+      controls.dynamicDampingFactor = 0.3;
+
+      camera.position.z = 0;
+      camera.position.y = 6;
+      camera.position.x = 0;
+
+      hemiLight = new THREE.HemisphereLight(0xf5f5dc, 0x000000, 0.8);
+
+      controlObject = new THREE.TransformControls( camera, renderer.domElement );
+
+      hemiLight.position.set(10, 10, 10);
+      scene.add(hemiLight);
+
+      spotLight = new THREE.SpotLight(0xffffff, 0.5);
+      spotLight.position.set(1.25, 1.7, 0.9);
+      spotLight.lookAt(scene);
+
+      spotLight.castShadow = true;
+      spotLight.distance = 0;
+      spotLight.angle = 0.65;
+      spotLight.decay = 0.5;
+      spotLight.exponent = 20;
+      spotLight.shadowCameraFov = 70;
+      spotLight.shadow.camera.near =0.5;
+      spotLight.shadow.camera.far = 3;
+      spotLight.shadow.darkness = 1.1;
+      spotLight.shadow.bias = 0;
+      spotLight.shadow.camera.castShadow = true;
+      scene.add(spotLight);
+
+      var geometry = new THREE.SphereGeometry( 0.05, 12, 12 );
+      var material = new THREE.MeshBasicMaterial( {color: 0xffffff} );
+      sphere = new THREE.Mesh( geometry, material );
+      scene.add( sphere );
+      sphere.position.set(1.25, 1.7, 0.9);
+
+      spotLight2 = new THREE.SpotLight(0xffffff, 0.5);
+      spotLight2.position.set(-1.25, 1.7, 0.9);
+      spotLight2.lookAt(scene);
+      spotLight2.castShadow = true;
+      spotLight2.distance = 0;
+      spotLight2.angle = 0.65;
+      spotLight2.decay = 0.5;
+      spotLight2.exponent = 20;
+      spotLight2.shadowCameraFov = 70;
+      spotLight2.shadow.camera.near =0.5;
+      spotLight2.shadow.camera.far = 3;
+      spotLight2.shadow.darkness = 1.1;
+      spotLight2.shadow.bias = 0;
+      spotLight2.shadow.camera.castShadow = true;
+      scene.add(spotLight2);
+
+      var geometry2 = new THREE.SphereGeometry( 0.05, 12, 12 );
+      var material2 = new THREE.MeshBasicMaterial( {color: 0xffffff} );
+      sphere2 = new THREE.Mesh( geometry2, material2 );
+      scene.add( sphere2 );
+      sphere2.position.set(-1.25, 1.7, 0.9);
+
+      controlObject = new THREE.TransformControls( camera, renderer.domElement );
+      scene.add( controlObject );
+      //controlObject.space = "world";
+
+      renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
+      renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
+      renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
+
+      $("#loadedScreen").fadeOut( "slow", function() {
+        isLoading = false;
+      });
+    });
+
+  }
+
+  function onDocumentMouseMove (event) {
+    event.preventDefault();
+
+    // Get mouse position
+    var mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+    var mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    if(controlObject.object)
+    {
+      controlObject.object.geometry.computeBoundingBox();
+      var centroid = new THREE.Vector3();
+      centroid.addVectors( controlObject.object.geometry.boundingBox.min, controlObject.object.geometry.boundingBox.max );
+      centroid.multiplyScalar( 0.5 );
+
+      centroid.applyMatrix4( scene.matrixWorld );
+      realPositionY = controlObject.object.position.y+centroid.y;
+      realPositionX = controlObject.object.position.x+centroid.x;
+      realPositionZ = controlObject.object.position.z+centroid.z;
+      if(controlObject.object.name == "light")
+      {
+        spotLight.position.set(realPositionX+1.25,realPositionY,realPositionZ);
+        spotLight2.position.set(realPositionX-1.25,realPositionY,realPositionZ);
+        sphere.position.set(realPositionX+1.25,realPositionY,realPositionZ);
+        sphere2.position.set(realPositionX-1.25,realPositionY,realPositionZ);
+      }
+      else
+      {
+        controlObject.object.geometry.computeBoundingBox();
+        var centroid = new THREE.Vector3();
+        centroid.addVectors( controlObject.object.geometry.boundingBox.min, controlObject.object.geometry.boundingBox.max );
+        centroid.multiplyScalar( 0.5 );
+
+        centroid.applyMatrix4( scene.matrixWorld );
+
+
+        oldPositionY = controlObject.object.position.y;
+
+        if(controlObject.object.position.y <= 0.5 ||  controlObject.object.position.y > 0.5)
+        {
+          controlObject.setTranslationSnap = 0;
+          controlObject.object.position.y = 0.49;
+        }
+
+
+        if(controlObject.object.rotation.x > 0 || controlObject.object.rotation.x < 0)
+        controlObject.object.rotation.x= 0;
+        if(controlObject.object.rotation.z > 0 || controlObject.object.rotation.z < 0)
+        controlObject.object.rotation.z= 0;
+
+        if(realPositionX <= -1.70)
+        {
+          controlObject.setTranslationSnap = 0;
+          controlObject.object.position.x = -1.75-centroid.x;
+        }
+
+        if(realPositionX >= 1.50)
+        {
+          controlObject.setTranslationSnap = 0;
+          controlObject.object.position.x = 1.55-centroid.x;
+        }
+
+
+        if(realPositionZ >= 1.16)
+        {
+          controlObject.setTranslationSnap = 0;
+          controlObject.object.position.z = 1.16-centroid.z;
+        }
+
+        if(realPositionZ <=-0.98)
+        {
+          controlObject.setTranslationSnap = 0;
+          controlObject.object.position.z = -0.98-centroid.z;
+        }
+      }
+    }
+  }
+
+
+  function onDocumentMouseUp (event) {
+
+  }
+
+  function onDocumentMouseDown (event) {
+
+    if(event.which == "3")
+    {
+      controls.enabled = true;
+      controlObject.detach(selection);
+      if(selection){
+        selection = null;
+      }
+    }
+    else if(event.which == "1")
+    {
+
+      notFirstSelection = false;
+
+      // Get mouse position
+      var mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+      var mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      // Get 3D vector from 3D mouse position using 'unproject' function
+      var vector = new THREE.Vector3(mouseX, mouseY, 1);
+      vector.unproject(camera);
+
+      // Set the raycaster position
+      raycaster.set( camera.position, vector.sub( camera.position ).normalize() );
+
+      // Find all intersected objects
+      var intersects = raycaster.intersectObjects(objects);
+      console.log(intersects);
+      if (selection){
+        selection = null;
+      }
+
+      if (intersects.length > 0 && !selection) {
+
+        // Disable the controls
+        point = intersects[0].point;
+        controls.enabled = false;
+
+        var previousSelection = selection;
+        if(previousSelection == null )
+        {
+          previousSelection = new THREE.Mesh();
+          previousSelection.name = "";
+        }
+        // Set the selection - first intersected object
+        selection = intersects[0].object;
+
+
+        if(previousSelection.name != selection.name)
+        {
+          selection.geometry.computeBoundingBox();
+          var centroid = new THREE.Vector3();
+          centroid.addVectors( selection.geometry.boundingBox.min, selection.geometry.boundingBox.max );
+          centroid.multiplyScalar( 0.5 );
+
+          centroid.applyMatrix4( scene.matrixWorld );
+
+          for(var i=0 ; i<controlObject.children.length ; i++)
+          {
+            controlObject.children[i].position.set(centroid.x,centroid.y,centroid.z);
+
+          }
+          controlObject.attach( selection );
+        }
+      }
+    }
+  }
+
+  function loadScene()
+  {
+    var chair1 ;
+    var chairMesh = new THREE.Mesh();
+    var ground = new THREE.Mesh() ;
+
+    loader = new THREE.JSONLoader();
+    loader.load( "models/arch/js/ground2.js", function( geometry,material ) {
+
+      // create a mesh with cubeCamera.renderTarget as a value of envMap
+      groundMaterial =  new THREE.MeshPhongMaterial({
+        map: parketTexture,
+        transparent: true,
+        opacity:0.7
+      });
+
+      ground = new THREE.Mesh( geometry, groundMirror.material );
+      ground.receiveShadow=true;
+      ground.name="ground";
+      //scene.add(ground);
+      ground.add( groundMirror );
+      scene.add( ground );
+      ground.position.y = ground.position.y - 0.05;
+
+      var geometry = new THREE.BoxGeometry( 3.9, 0.01, 3.0 );
+      ground1 = new THREE.Mesh( geometry, groundMaterial );
+      ground1.position.y = ground.position.y + 0.26;
+      ground1.position.x = ground.position.x - 0.08;
+      ground1.receiveShadow = true;
+      scene.add( ground1 );
+
+      camera.lookAt(ground);
+      collidableMeshList.push(ground)
+
+    });
+
+
+    loader = new THREE.JSONLoader();
+    loader.load( "models/arch/js/chair1.js", function( geometry,material ) {
+
+      chair1 = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial(material) );
+      chair1.position.set(-0.6,0.49,0);
+      chair1.castShadow = true;
+      scene.add(chair1);
+      chair1.name = "chair1";
+      objects.push(chair1);
+      collidableMeshList.push(chair1);
+
+
+      chair1.geometry.computeBoundingBox();
+      var centroid = new THREE.Vector3();
+
+    });
+
+    loader = new THREE.JSONLoader();
+    loader.load( "models/arch/js/chair2.js", function( geometry,material ) {
+
+      chair2 = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial(material) );
+
+      scene.add(chair2);
+      chair2.position.set(0.6,0.49,0);
+      chair2.castShadow = true;
+      chair2.name = "chair2";
+
+      collidableMeshList.push(chair2)
+      objects.push(chair2);
+
+    });
+
+    loader = new THREE.JSONLoader();
+    loader.load( "models/arch/js/table1.js", function( geometry,material ) {
+
+      table1 = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial(material) );
+
+      scene.add(table1);
+      table1.position.set(0,0.5,0);
+      table1.castShadow = true;
+      table1.name = "table1";
+
+
+      collidableMeshList.push(table1)
+      objects.push(table1);
+    });
+
+    loader = new THREE.JSONLoader();
+    loader.load( "models/arch/js/table2.js", function( geometry,material ) {
+
+      table2 = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial(material) );
+
+      scene.add(table2);
+      table2.position.set(1.6,0.49,0.5);
+
+      //EventsControls.attach(table2);
+      table2.name = "table2";
+      table2.castShadow = true;
+
+      collidableMeshList.push(table2)
+      objects.push(table2);
+    });
+
+    loader = new THREE.JSONLoader();
+    loader.load( "models/arch/js/light.js", function( geometry,material ) {
+
+      light = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial(material) );
+      scene.add(light);
+      light.name = "light";
+      collidableMeshList.push(light);
+      objects.push(light);
+    });
+  }
+
+  loadingScene = new THREE.Scene();
+  mainScene = new THREE.Scene();
+  startLoadingScene();
+
+
+  var render = function () {
+
+
+    // if we are rendering the loading scene
+    if(isLoading)
+    {
+      renderer.render( loadingScene, camera );
+      loaderMesh.rotation.y -= 0.03;
+      requestAnimationFrame(render);
+      renderer.render(loadingScene, camera);
+    }
+    // if we are rendering the main scene
+    else
+    {
+      inverseCamera.position.set(camera.position.x,-camera.position.y,-camera.position.z);
+      groundMirror.render();
+
+      controlObject.update();
+      controls.update(clock.getDelta());
+      requestAnimationFrame(render);
+      renderer.render(scene, camera);
+    }
+  };
+
+  render();
+
+  window.addEventListener( 'keydown', function ( event ) {
+
+    switch ( event.keyCode ) {
+
+      case 81: // Q
+      controlObject.setSpace( control.space === "local" ? "world" : "local" );
+      break;
+
+      case 17: // Ctrl
+      controlObject.setTranslationSnap( 100 );
+      controlObject.setRotationSnap( THREE.Math.degToRad( 15 ) );
+      break;
+
+      case 87: // W
+      controlObject.setMode( "translate" );
+      break;
+
+      case 69: // E
+      controlObject.setMode( "scale" );
+      break;
+
+      case 82: // R
+      controlObject.setMode( "rotate" );
+      break;
+
+      case 187:
+      case 107: // +, =, num+
+      control.setSize( control.size + 0.1 );
+      break;
+
+      case 189:
+      case 109: // -, _, num-
+      control.setSize( Math.max( control.size - 0.1, 0.1 ) );
+      break;
+
+    }
+
+  });
+
+  THREE.DefaultLoadingManager.onProgress = function (item, loaded, total) {
+    if (loaded == total) {
+      console.log("loaded");
+      //isLoading = false;
+
+      // create the main selection menu
+      var iDiv = document.createElement('div');
+      //iDiv.innerHTML = " Cadeiras seleccionadas : ";
+      iDiv.style.width = '100%';
+      iDiv.style.textAlign = "center";
+      iDiv.style.height = '100%';
+      iDiv.style.position = "absolute";
+      iDiv.style.background = '#000000';
+      iDiv.id = 'loadedScreen';
+      iDiv.style.top = '0';
+      iDiv.style.display = "none";
+
+
+
+      var textDiv = document.createElement('div');
+      textDiv.style.color = "white";
+      textDiv.innerHTML = " Welcome to 'Architecture', a PUSH Interactive experiment. <br> <br> <br> <b><u>Instructions</b></u> : <br><br> 1.Click and drag the mouse to orbit the scene"
+      + "<br> 2. Click on any object to manipulate it  <br> 3. Toggle between modes with the folloing keys : <br> - 'E' to Move the object around"
+      + " <br> - 'R' to Rotate the object <br> 4. Move the lights around and see the shadows change <br><br><br><br> Click anywhere to continue";
+      textDiv.style.width = '100%';
+      textDiv.style.textAlign = "center";
+      textDiv.style.height = '100%';
+      textDiv.style.position = "absolute";
+      textDiv.style.background = '#000000';
+      textDiv.id = 'textScreen';
+      textDiv.style.top = '30%';
+
+      iDiv.appendChild(textDiv);
+
+      document.body.appendChild(iDiv);
+      $("#loadedScreen").fadeIn("slow");
+      $( "#textScreen" ).click(function() {
+        init();
+      });
+    }
+  };
+
+  THREE.DefaultLoadingManager.onLoad = function () {
+    console.log('all items loaded');
+  };
+  THREE.DefaultLoadingManager.onError = function () {
+    console.log('there has been an error');
+  };
+
+
+  //
+  // This method shows the loading scene, while the items are not loaded
+  //
+  function startLoadingScene() {
+    loadScene();
+    isLoading = true;
+    loadingScene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10);
+    camera.position.set(0, 0, 7);
+    camera.lookAt(loadingScene.position);
+
+    currentScene = loadingScene;
+
+    loader = new THREE.JSONLoader();
+    loader.load( "models/loading3.js", function( geometry,materials ) {
+
+      loaderMesh = new THREE.Mesh( geometry, new THREE.MeshNormalMaterial() );
+
+      loadingScene.add(loaderMesh);
+
+    });
+
+  }
+
+  function checkCollision(objectToCheck) {
+
+    objectToCheck.geometry.computeBoundingBox();
+    var centroid = new THREE.Vector3();
+    centroid.addVectors( objectToCheck.geometry.boundingBox.min, objectToCheck.geometry.boundingBox.max );
+    centroid.multiplyScalar( 0.5 );
+
+    centroid.applyMatrix4( objectToCheck.matrixWorld );
+
+    directionrays = [
+      new THREE.Vector3(0.2, 0, 0),
+      new THREE.Vector3(-0.2, 0, 0),
+      new THREE.Vector3(0, 0.2, 0),
+      new THREE.Vector3(0, 0, 0.2),
+      new THREE.Vector3(0, 0, -0.2),
+      new THREE.Vector3(0.2, 0.2, 0),
+      new THREE.Vector3(-0.2, 0.2, 0),
+      new THREE.Vector3(0, 0.2, 0.2),
+      new THREE.Vector3(0, 0.2, -0.2)
+    ];
+
+    tempCollisionArray = collidableMeshList.slice(0);
+    removeObjectIndex = tempCollisionArray.indexOf(objectToCheck);
+    if (removeObjectIndex > -1) {
+      tempCollisionArray.splice(removeObjectIndex, 1);
+    }
+
+    for(var i = 0 ; i<directionrays.length ; i++)
+    {
+      var directionVector = directionrays[i];
+
+      thresholdDistance = 0.1;
+
+      var ray = new THREE.Raycaster( centroid, directionVector.clone().normalize() );
+      var collisionResults = ray.intersectObjects( tempCollisionArray );
+      if ( collisionResults.length > 0 && collisionResults[0].distance < 0.1 )
+      {
+        collision=true;
+
+      }
+      else
+      {
+        collision=false;
+      }
+    }
+    return collision;
+
+  }
+  </script>
+</body>
+
+</html>
