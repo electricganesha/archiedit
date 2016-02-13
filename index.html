@@ -43,7 +43,7 @@
   var renderer = new THREE.WebGLRenderer({
     antialias: true
   });
-  renderer.setClearColor( 0xdddddd);
+  renderer.setClearColor( 0x808080);
 
   var fov = 45;
   var camera, controls;
@@ -76,6 +76,18 @@
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
+
+  // create the main selection menu
+  var waterMarkDiv = document.createElement('div');
+  waterMarkDiv.style.width = '200px';
+  waterMarkDiv.style.height = '82px';
+  waterMarkDiv.style.position = "absolute";
+  waterMarkDiv.id = 'watermarkDiv';
+  //waterMarkDiv.style.top = '0';
+  waterMarkDiv.style.bottom = "5%";
+  waterMarkDiv.style.left = "5%";
+  waterMarkDiv.innerHTML = "<img src='img/Push_Logo_transparente.png'> </img>";
+  document.body.appendChild(waterMarkDiv);
 
 
   function init()
@@ -518,8 +530,6 @@
       iDiv.id = 'loadedScreen';
       iDiv.style.top = '0';
       iDiv.style.display = "none";
-
-
 
       var textDiv = document.createElement('div');
       textDiv.style.color = "white";
