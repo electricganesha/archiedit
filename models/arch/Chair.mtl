@@ -1,0 +1,38 @@
+# Blender MTL File: 'None'
+# Material Count: 3
+
+newmtl MAT_ChairBase
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.000000 0.000000 0.000000
+Ks 0.968628 0.949020 0.917647
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd Chair_Diffuse_S.jpg
+map_Ka Chair_Diffuse_S.jpg
+
+newmtl MAT_ChairLeg
+Ns 94.117647
+Ka 0.000000 0.000000 0.000000
+Kd 0.000000 0.000000 0.000000
+Ks 0.968628 0.949020 0.917647
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd Chair_Diffuse_S.jpg
+map_Ka Chair_Diffuse_S.jpg
+
+newmtl MAT_ChairSeat
+Ns 72.549020
+Ka 0.000000 0.000000 0.000000
+Kd 0.925490 0.917647 0.894118
+Ks 0.125490 0.125490 0.125490
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd Chair_Diffuse_S.jpg
+map_Ka Chair_Diffuse_S.jpg

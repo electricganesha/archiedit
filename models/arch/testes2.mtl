@@ -1,0 +1,16 @@
+# 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
+# File Created: 19.02.2016 11:57:22
+
+newmtl MAT_ChairSeat
+	Ns 74.000000
+	Ni 1.500000
+	d 1.000000
+	Tr 0.000000
+	Tf 1.000000 1.000000 1.000000 
+	illum 2
+	Ka 0.000000 0.000000 0.000000
+	Kd 0.925490 0.917647 0.894118
+	Ks 0.125490 0.125490 0.125490
+	Ke 0.000000 0.000000 0.000000
+	map_Ka TEX_Wall_S.jpg
+	map_Kd TEX_Wall_S.jpg
